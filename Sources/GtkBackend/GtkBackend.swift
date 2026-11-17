@@ -31,6 +31,9 @@ public final class GtkBackend {
 
     var borderedButtonPadding: SIMD2<Int>?
 
+    /// Measured sizes of text views. See ``TextSizeKey``.
+    var textSizeCache: [TextSizeKey: SIMD2<Int>] = [:]
+
     // A separate initializer to satisfy `BackendFeatures.Core`'s requirements.
     public convenience init() {
         self.init(appIdentifier: nil)

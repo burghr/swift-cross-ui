@@ -4,7 +4,7 @@ import Gtk
 
 extension GtkBackend: BackendFeatures.LinearGradients {
     public func createLinearGradientWidget() -> Widget {
-        DrawingArea()
+        GradientDrawingArea()
     }
 
     public func updateLinearGradientWidget(
@@ -13,7 +13,7 @@ extension GtkBackend: BackendFeatures.LinearGradients {
         withSize size: SIMD2<Int>,
         in environment: EnvironmentValues
     ) {
-        let drawingArea = widget as! DrawingArea
+        let drawingArea = widget as! GradientDrawingArea
 
         let startPoint = UnitPoint(
             x: Double(size.x) * gradient.startPoint.x,
@@ -30,6 +30,24 @@ extension GtkBackend: BackendFeatures.LinearGradients {
         let colors = stops.map {
             $0.color.resolve(in: environment)
         }
+
+        // A new draw function makes GTK draw the gradient again on the CPU.
+        // Set it only when the gradient or its size changes. The size is in
+        // the key because the draw function fills a rectangle of that size.
+        var key: [Double] = [
+            Double(size.x), Double(size.y),
+            startPoint.x, startPoint.y, endPoint.x, endPoint.y,
+        ]
+        for (stop, color) in zip(stops, colors) {
+            key += [
+                stop.location, Double(color.red), Double(color.green),
+                Double(color.blue), Double(color.opacity),
+            ]
+        }
+        if drawingArea.drawKey == key {
+            return
+        }
+        drawingArea.drawKey = key
 
         drawingArea.setDrawFunc { cairo, _, _ in
             let pattern = cairo_pattern_create_linear(
